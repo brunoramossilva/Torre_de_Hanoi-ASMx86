@@ -118,7 +118,7 @@ caso_base:
 recursao:
     ; Primeiro verificamos se estamos no caso base (apenas 1 disco):
     cmp edx, 1
-    je caso_base  ; Se for 1, trata como caso base.
+    je caso_base  ; Se for 1, trata como caso base. "je" significa: "saltar se Igual".
 
     ; Se não for o caso base, precisamos fazer a recursão.
     ; Salvamos o estado atual dos registradores na pilha:
