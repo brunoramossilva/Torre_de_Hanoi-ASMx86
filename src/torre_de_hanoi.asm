@@ -34,6 +34,16 @@ section .data
     len_concluido equ $ - msg_concluido
 
 
+; Seção .bss: Define variáveis não inicializadas (espaço reservado na memória):
+section .bss
+
+    entrada_numero resb 2 ; Reserva 2 bytes para armazenar a entrada do usuário.
+    num_discos resb 1 ; Reserva 1 byte para armazenar o número de discos.
+
+
+; O ".text" é uma área de memória em um programa que contém o código executável, ou seja, as instruções que o processador irá executar. Essa seção não contém dados variáveis, mas sim as instruções que formam o programa propriamente dito. 
+section .text
+
 ; A função 'input' é responsável por ler a entrada do usuário do teclado, ela usa a chamada de sistema 'sys_read' do Linux:
 input:
     ; Primeiro salvamos os valores atuais dos registradores na pilha, isso é importante porque essas funções são chamadas em outras partes do programa e não queremos alterar acidentalmente valores que estão sendo usados:
@@ -56,6 +66,7 @@ input:
     pop ebx
     pop eax
     ret ; Retorna para o ponto onde a função foi chamada. Equivalente a return em C++. Ele restaura o fluxo de execução para a próxima instrução após o call.
+
 
 ; A função 'output' é responsável por escrever mensagens na tela, ela usa a chamada de sistema 'sys_write' do Linux:
 output:
@@ -80,6 +91,7 @@ output:
     pop eax
     ret ; Retorna para o ponto onde a função foi chamada. Equivalente a return em C++. Ele restaura o fluxo de execução para a próxima instrução após o call.
 
+
 ; Esta função exibe a mensagem inicial que informa quantos discos serão usados:
 exibir_mensagem_inicial:
     ; Salvamos os registradores:
@@ -97,9 +109,9 @@ exibir_mensagem_inicial:
     mov [msg_discos], al
 
     ; Configuramos os parâmetros para a chamada de output:
-    mov ecx, msg_inicial  ; Endereço da mensagem.
-    mov edx, len_inicial  ; Tamanho da mensagem.
-    call output           ; Chamamos a função para exibir a mensagem.
+    mov ecx, msg_inicial ; Endereço da mensagem.
+    mov edx, len_inicial ; Tamanho da mensagem.
+    call output ; Chamamos a função para exibir a mensagem.
     
     ; Restauramos os registradores originais:
     pop edx
@@ -108,16 +120,57 @@ exibir_mensagem_inicial:
     pop eax
     ret ; Retorna para o ponto onde a função foi chamada. Equivalente a return em C++. Ele restaura o fluxo de execução para a próxima instrução após o call.
 
+
+; Esta função exibe uma mensagem mostrando o movimento atual:
+output_movimento:
+    ; Salvamos os registradores:
+    push eax
+    push ebx
+    push ecx
+    push edx
+
+    ; Preparamos os valores para exibição.
+    ; dl contém o número do disco, convertemos para ASCII:
+    add dl, "0"
+    mov [msg_disco_atual], dl
+    ; al contém a torre de origem (A, B ou C).
+    mov [msg_torre_origem], al
+    ; cl contém a torre de destino (A, B ou C).
+    mov [msg_torre_destino], cl
+
+    ; Precisamos salvar ecx e edx porque vamos usá-los para a chamada de output:
+    push ecx
+    push edx
+    ; Configuramos os parâmetros para exibir a mensagem:
+    mov ecx, msg_mova ; Endereço da mensagem.
+    mov edx, len_movimento ; Tamanho da mensagem.
+    call output ; Exibimos a mensagem.
+    ; Restauramos ecx e edx:
+    pop edx
+    pop ecx
+
+    ; Convertemos dl de volta para valor numérico:
+    sub dl, "0"
+
+    ; Restauramos todos os registradores:
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+    ret ; Retorna para o ponto onde a função foi chamada. Equivalente a return em C++. Ele restaura o fluxo de execução para a próxima instrução após o call.
+
+
 ; Esta função lida com o caso base da recursão (quando há apenas 1 disco):
 caso_base:
     ; Simplesmente chama a função para exibir o movimento:
-    call output_movimento ; Função declarada mais abaixo.
+    call output_movimento
     ret ; Retorna para o ponto onde a função foi chamada. Equivalente a return em C++. Ele restaura o fluxo de execução para a próxima instrução após o call.
+
 
 ; Esta função implementa o algoritmo recursivo da Torre de Hanói:
 recursao:
     ; Primeiro verificamos se estamos no caso base (apenas 1 disco):
-    cmp edx, 1
+    cmp dl, 1
     je caso_base  ; Se for 1, trata como caso base. "je" significa: "saltar se Igual".
 
     ; Se não for o caso base, precisamos fazer a recursão.
@@ -162,51 +215,15 @@ recursao:
     pop eax
     ret ; Retorna para o ponto onde a função foi chamada. Equivalente a return em C++. Ele restaura o fluxo de execução para a próxima instrução após o call.
 
-; Esta função exibe uma mensagem mostrando o movimento atual:
-output_movimento:
-    ; Salvamos os registradores:
-    push eax
-    push ebx
-    push ecx
-    push edx
-
-    ; Preparamos os valores para exibição.
-    ; dl contém o número do disco, convertemos para ASCII:
-    add dl, "0"
-    mov [msg_disco_atual], dl
-    ; al contém a torre de origem (A, B ou C).
-    mov [msg_torre_origem], al
-    ; cl contém a torre de destino (A, B ou C).
-    mov [msg_torre_destino], cl
-
-    ; Precisamos salvar ecx e edx porque vamos usá-los para a chamada de output:
-    push ecx
-    push edx
-    ; Configuramos os parâmetros para exibir a mensagem:
-    mov ecx, msg_mova ; Endereço da mensagem.
-    mov edx, len_movimento ; Tamanho da mensagem.
-    call output ; Exibimos a mensagem.
-    ; Restauramos ecx e edx:
-    pop edx
-    pop ecx
-
-    ; Convertemos dl de volta para valor numérico:
-    sub dl, "0"
-
-    ; Restauramos todos os registradores:
-    pop edx
-    pop ecx
-    pop ebx
-    pop eax
-    ret ; Retorna para o ponto onde a função foi chamada. Equivalente a return em C++. Ele restaura o fluxo de execução para a próxima instrução após o call.
-
 
 ; Aqui começa a execução principal do programa.
 ; Marca onde o sistema operacional deve começar a executar o programa.
-; Detalhes importantes: 1. Equivalente à função main() em C; 2. O rótulo precisa ser declarado como global para ser visível externamente.
+; Detalhes importantes: 1° Equivalente à função main() em C++; 2° O rótulo precisa ser declarado como global para ser visível externamente.
 inicio_programa:
+
     global _start  ; Define o ponto de entrada do programa.
 
+; O programa inicia aqui:
 _start:
     ; Primeiro exibimos a mensagem pedindo o número de discos:
     mov ecx, msg_input  ; Endereço da mensagem.
@@ -248,8 +265,3 @@ _start:
     ; Finalizamos o programa com a chamada de sistema 'exit':
     mov eax, 1 ; Número da syscall 'exit';
     int 0x80 ; Chamada ao sistema operacional.
-
-; Seção .bss: Define variáveis não inicializadas (espaço reservado na memória):
-segment .bss
-    entrada_numero resb 2 ; Reserva 2 bytes para armazenar a entrada do usuário;
-    num_discos resb 1 ; Reserva 1 byte para armazenar o número de discos.
